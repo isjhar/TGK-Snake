@@ -5,201 +5,177 @@ public class SnakeController : MonoBehaviour {
 	
 	// private
 	private State state;
-	Direction direction;
-	float speed, tempDelay, maxWidthScreen, minWidthScreen, maxHeightScreen, minHeightScreen;
-	ArrayList snake;
-	ArrayList watcherList;
-	int counter, totalScore;
-	
-	
+	private Direction direction;
+	private float tempDelay;
+	private Vector3 tileScale, offset;
+	private ArrayList snake;
+	private ArrayList watcherList;
+	private int counter, totalScore,tailPosition, maxWidthTile, minWidthTile, maxHeightTile, minHeightTile, speed;
+
+
+
 	// public
-	public float delay;
 	public Transform head;
 	public Transform body;
+	public Transform tail;
+	public Direction directionInitSnake;
 	public int initSnakeLenght;
 	public int score;
 	
 	
 	// Use this for initialization
-	void Start () {
+	public void Init () {
 		// init game
-		state = State.Start;
-		speed = head.localScale.x;
-		tempDelay = delay;
-		snake = new ArrayList ();
-		watcherList = new ArrayList ();
-		
-		
-		// init ular
-		Transform temp = (Transform) Instantiate (head, new Vector3 (0.125f,0.125f,0), Quaternion.identity);
-		BodySnake bodySnake = new BodySnake (Direction.Right, temp);
-		snake.Add(bodySnake);
-		float snakeLength = -0.125f;
-		for (int i = 0; i < initSnakeLenght; i++) {
-			temp = (Transform) Instantiate(body,new Vector3(snakeLength,0.125f,0),Quaternion.identity);
-			bodySnake = new BodySnake (Direction.Right, temp);
-			snake.Add(bodySnake);
-			snakeLength -= speed;
-		}
+
+
+		tileScale = GameObject.Find ("Map").GetComponent<MapManager> ().GetTileScale();
+		offset = GameObject.Find ("Map").GetComponent<MapManager> ().GetOffset ();
+
 
 		//init screen
-		maxWidthScreen = Camera.main.orthographicSize * Camera.main.aspect;
-		minWidthScreen = -maxWidthScreen;
-		maxHeightScreen = Camera.main.orthographicSize;
-		minHeightScreen = -maxHeightScreen;
-	
-		
+		maxWidthTile = GameObject.Find ("Map").GetComponent<MapManager> ().GetWidth ()-1;
+		minWidthTile = 0;
+		maxHeightTile = 0;
+		minHeightTile = -GameObject.Find ("Map").GetComponent<MapManager> ().GetHeight()+1;
+
+
+
+
+
+		// state = State.Start;
+		speed = 1;
+		snake = new ArrayList ();
+		watcherList = new ArrayList ();
+
+
+		state = State.Play;
+
+	}
+
+	void Update(){
+		//CheckState ();
+		//Debug.Log (watcherList.Count);
 	}
 	
-	// Update is called once per frame
-	void Update () {
-		CheckState ();
-		if(tempDelay < 0){
-			SetDirection ();
-			tempDelay = delay;
-		} else {
-			tempDelay -= Time.deltaTime;
-		}
-	}
-	
-	void CheckState(){
-		Vector3 pointChange;
+	public void CheckState(){
+//		Debug.Log (state);
+		Tile tileChange;
 		BodySnake temp;
 		Watcher watcher;
 		Direction tempDirection;
-		if (state == State.Start) {
-			if(Input.GetKey (KeyCode.Space)){
-				state = State.Play;
-				GameObject.Find("Start").GetComponent<GUIText>().enabled = false;
-				GameObject.Find("Score").GetComponent<GUIText>().enabled = true;
-				GameObject.Find("Value").GetComponent<GUIText>().enabled = true;
-				MakananController makananCtrl = GameObject.Find ("Makanan").GetComponent<MakananController> ();
-				makananCtrl.CreateMakanan ();
-			}
-		} else if (state == State.Play){
-			temp = (BodySnake) snake[0];
-			//Debug.Log ("Head Ular (" + temp.GetTransform().transform.position.x + "," + temp.GetTransform().transform.position.y + ")");
+		if (state == State.Play){
+			temp = (BodySnake) FindHead();
+//			Debug.Log (temp.GetTransform().name + " Ular (" + temp.GetTransform().transform.position.x + "," + temp.GetTransform().transform.position.y + ")");
 			direction = temp.GetDirection();
 			if(direction == Direction.Up || direction == Direction.Down){
 				if(Input.GetKeyDown(KeyCode.RightArrow)){
 					tempDirection = Direction.Right;
-					pointChange = temp.GetTransform().transform.position;
-					watcher = new Watcher(tempDirection,pointChange);
+					tileChange = temp.GetTile();
+					watcher = new Watcher(tempDirection,tileChange);
 					watcherList.Add(watcher);
 				} else if(Input.GetKeyDown(KeyCode.LeftArrow)){
 					tempDirection = Direction.Left;
-					pointChange = temp.GetTransform().transform.position;
-					watcher = new Watcher(tempDirection,pointChange);
+					tileChange = temp.GetTile();
+					watcher = new Watcher(tempDirection,tileChange);
 					watcherList.Add(watcher);
 				}
 			} else {
 				if(Input.GetKeyDown(KeyCode.UpArrow)){
 					tempDirection = Direction.Up;
-					pointChange = temp.GetTransform().transform.position;
-					watcher = new Watcher(tempDirection,pointChange);
+					tileChange = temp.GetTile();
+					watcher = new Watcher(tempDirection,tileChange);
 					watcherList.Add(watcher);
 				} else if(Input.GetKeyDown(KeyCode.DownArrow)){
 					tempDirection = Direction.Down;
-					pointChange = temp.GetTransform().transform.position;
-					watcher = new Watcher(tempDirection,pointChange);
+					tileChange = temp.GetTile();
+					watcher = new Watcher(tempDirection,tileChange);
 					watcherList.Add(watcher);
 				}
 			}
 		} else if(state == State.GameOver){
-			if(Input.GetKeyDown(KeyCode.Space)){
-				Application.LoadLevel("Menu");
-
-			}
+			Application.LoadLevel("Game");
+			Debug.Log ("load new");
 		}
 	}
 	
-	void SetDirection(){
+	public void SetDirection(){
 		BodySnake partOfSnake;
 		Watcher watcherTemp;
-		Vector3 currentPosition, watcherPoint;
+		Tile currentPosition, watcherTile;
 		bool isLast = false;
+		BodySnake headSnake = FindHead ();
+		headSnake.GetTransform ().GetComponent<BoxCollider> ().enabled = false;
+		int indexDeleted = 0;
 
-		if (state == State.Play){
-			for(int i = 0;i < snake.Count;i++){
-				partOfSnake = (BodySnake) snake[i];
-				currentPosition = partOfSnake.GetTransform().transform.position;
-				for(int j = 0;j < watcherList.Count;j++){
-					watcherTemp = (Watcher) watcherList[j];
-					watcherPoint = watcherTemp.GetPoint();
-					if(currentPosition == watcherPoint){
-						partOfSnake.SetDirection(watcherTemp.GetDirection());
+//		Debug.Log ("Panjang Ular " + snake.Count);
+		for(int i = 0;i < snake.Count;i++){
+//			Debug.Log (i + ". WatcherList : " + watcherList.Count);
+			partOfSnake = (BodySnake) snake[i];
+			currentPosition = partOfSnake.GetTile();
+			for(int j = 0;j < watcherList.Count;j++){
+				watcherTemp = (Watcher) watcherList[j];
+				watcherTile = watcherTemp.GetTile();
+				if(currentPosition.GetX() == watcherTile.GetX() && currentPosition.GetY() == watcherTile.GetY ()){
+					watcherTemp.IncrementNumberOfPass();
+//					Debug.Log (partOfSnake.GetTransform().name+ ". bagian tubuh ular ke-" + i + " sama dengan watcher gan");
 
-						if(i == 0){
-							BoxCollider collider = partOfSnake.GetTransform().GetComponent<BoxCollider>();
-							Vector3 newColliderPosition = new Vector3();
-							newColliderPosition = collider.center;
-							float center = partOfSnake.GetTransform().localScale.y;
-							switch(partOfSnake.GetDirection()){
-								case Direction.Up :
-									newColliderPosition.x = 0;
-									newColliderPosition.y = center;
-								break;
-								case Direction.Down :
-									newColliderPosition.x = 0;
-									newColliderPosition.y = -center;
-									break;
-								case Direction.Left :
-									newColliderPosition.x = -center;
-									newColliderPosition.y = 0;
-									break;
-								case Direction.Right :
-									newColliderPosition.x = center;
-									newColliderPosition.y = 0;
-									break;
-							}
-							collider.center = newColliderPosition;
-						}
+					RotateSnake(watcherTemp.GetDirection(),partOfSnake.GetDirection(),partOfSnake.GetTransform());
+					partOfSnake.SetDirection(watcherTemp.GetDirection());
 
-						if (i == (snake.Count - 1)){
-							isLast = true;
-						} 
-					}
+
+					if (watcherTemp.GetNumberOfPass() == snake.Count){
+						isLast = true;
+						indexDeleted = j;
+					} 
+					break;
+				
 				}
 
-				if(isLast){
-					watcherList.RemoveAt(0);
-					isLast = false;
-				}
 
-				Vector3 newPosition = new Vector3 (currentPosition.x,currentPosition.y,currentPosition.z);
-				if (partOfSnake.GetDirection() == Direction.Up) {
-					if(newPosition.y + speed > maxHeightScreen){
-						newPosition.y = -newPosition.y;
-					} else {
-						newPosition.y += speed;
-					}
-				} else if(partOfSnake.GetDirection() == Direction.Down){
-					if(newPosition.y - speed < minHeightScreen){
-						newPosition.y = -newPosition.y;
-					} else {
-						newPosition.y -= speed;
-					}
-
-				} else if(partOfSnake.GetDirection() == Direction.Right){
-					if(newPosition.x + speed > maxWidthScreen){
-						newPosition.x = -newPosition.x;
-					} else {
-						newPosition.x += speed;
-					}
-				} else if(partOfSnake.GetDirection() == Direction.Left){
-					if(newPosition.x - speed < minWidthScreen){
-						newPosition.x = -newPosition.x;
-					} else {
-						newPosition.x -= speed;
-					}
-
-				}
-
-				partOfSnake.GetTransform().transform.position = newPosition;
 
 			}
-			
+
+			//if(isLast && (i == (snake.Count - 1))){
+			if(isLast){
+				watcherList.RemoveAt(indexDeleted);
+				isLast = false;
+			}
+
+			Tile newPosition = new Tile (currentPosition.GetX(),currentPosition.GetY ());
+			if (partOfSnake.GetDirection() == Direction.Up) {
+				if(newPosition.GetY () + speed > maxHeightTile){
+					newPosition.SetY(minHeightTile);
+				} else {
+					newPosition.SetY(newPosition.GetY()+speed);
+				}
+			} else if(partOfSnake.GetDirection() == Direction.Down){
+				if(newPosition.GetY() - speed < minHeightTile){
+					newPosition.SetY(maxHeightTile);
+				} else {
+					newPosition.SetY(newPosition.GetY()-speed);
+				}
+
+			} else if(partOfSnake.GetDirection() == Direction.Right){
+				if(newPosition.GetX() + speed > maxWidthTile){
+					newPosition.SetX(minWidthTile);
+				} else {
+					newPosition.SetX(newPosition.GetX () + speed);
+				}
+			} else if(partOfSnake.GetDirection() == Direction.Left){
+				if(newPosition.GetX() - speed < minWidthTile){
+					newPosition.SetX(maxWidthTile);
+				} else {
+					newPosition.SetX(newPosition.GetX () - speed);
+				}
+
+			}
+
+			partOfSnake.GetTransform().transform.position = GetPosition(newPosition,tileScale,offset);
+			partOfSnake.SetTile(newPosition);
 		}
+
+		headSnake.GetTransform ().GetComponent<BoxCollider> ().enabled = true;
+			
 	}
 
 	public void SetState(State state){
@@ -207,29 +183,73 @@ public class SnakeController : MonoBehaviour {
 	}
 
 	public void addLength(){
-		BodySnake temp = (BodySnake)snake [snake.Count - 1];
-
-
-		Vector3 newBodyPosition = temp.GetTransform ().transform.position;
+		BodySnake temp = FindTail ();
+		Tile newTailPosition = temp.GetTile ();
+		Tile newBodyPosition = new Tile (newTailPosition.GetX (), newTailPosition.GetY ());
 		Direction tempDirection = temp.GetDirection ();
 
 		switch (tempDirection) {
 		case Direction.Down :
-			newBodyPosition.y += speed; 
+			newTailPosition.SetY(newTailPosition.GetY()+speed);
 			break;
 		case Direction.Left :
-			newBodyPosition.x += speed;
+			newTailPosition.SetX(newTailPosition.GetX()+speed);
 			break;
 		case Direction.Right :
-			newBodyPosition.x -= speed;
+			newTailPosition.SetX(newTailPosition.GetX()-speed);
 			break;
 		case Direction.Up :
-			newBodyPosition.y -= speed;
+			newTailPosition.SetY(newTailPosition.GetY()-speed);
 			break;
 		}
-		Transform transformTemp = (Transform) Instantiate(body,newBodyPosition,Quaternion.identity);
-		BodySnake newBody = new BodySnake (tempDirection, transformTemp); 
+		temp.GetTransform ().transform.position = GetPosition(newTailPosition,tileScale,offset);
+		Transform transformTemp = (Transform) Instantiate(body,GetPosition(newBodyPosition,tileScale,offset), Quaternion.identity);
+		BodySnake newBody = new BodySnake (tempDirection, transformTemp, newBodyPosition); 
+
 		snake.Add (newBody);
+		ArrayList list = GameObject.Find ("Food(Clone)").GetComponent<FoodController> ().GetForbidTile ();
+		list.Add (newBodyPosition);
+//		Debug.Log ("addLength ");
+	}
+
+	public void InitHead(Tile tile){
+		Transform temp = (Transform) Instantiate (head, GetPosition(tile,tileScale,offset), Quaternion.identity);
+		BodySnake bodySnake = new BodySnake (directionInitSnake, temp, tile);
+		snake.Add(bodySnake);
+	}
+
+	public void InitBody(Tile tile){
+		Transform temp = (Transform) Instantiate (body, GetPosition(tile,tileScale,offset), Quaternion.identity);
+		BodySnake bodySnake = new BodySnake (directionInitSnake, temp, tile);
+		snake.Add(bodySnake);
+	}
+
+	public void InitTail(Tile tile){
+		Transform temp = (Transform) Instantiate (tail, GetPosition(tile,tileScale,offset), Quaternion.identity);
+		BodySnake bodySnake = new BodySnake (directionInitSnake, temp, tile);
+		snake.Add(bodySnake);
+	}
+
+	public BodySnake FindTail(){
+		BodySnake temp = null;
+		for (int i = 0; i < snake.Count; i++) {
+			temp = (BodySnake) snake[i];
+			if(temp.GetTransform().name.Equals("Tail(Clone)")){
+				break;
+			}
+		}
+		return temp;
+	}
+
+	public BodySnake FindHead(){
+		BodySnake temp = null;
+		for (int i = 0; i < snake.Count; i++) {
+			temp = (BodySnake) snake[i];
+			if(temp.GetTransform().name.Equals("Head(Clone)")){
+				return temp;
+			}
+		}
+		return temp;
 	}
 
 	public ArrayList GetWatcherList(){
@@ -247,5 +267,62 @@ public class SnakeController : MonoBehaviour {
 
 	public int GetTotalScore(){
 		return totalScore;
+	}
+
+	public Vector3 GetPosition(Tile tile, Vector3 scale, Vector3 offset){
+		Vector3 tempPosition = new Vector3((tile.GetX()*scale.x)+offset.x,(tile.GetY()*scale.y)-offset.y,0);
+		return tempPosition;
+	}
+
+	public void RotateSnake(Direction from, Direction to, Transform snake){
+		switch(from){
+		// Dari Bawah
+		case Direction.Down  : 
+			switch(to) {
+			case Direction.Right :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, 90));
+				break;
+			case Direction.Left :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, -90));
+				break;
+			}
+			break;
+
+		// Dari Atas
+		case Direction.Up  : 
+			switch(to) {
+			case Direction.Right :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, -90));
+				break;
+			case Direction.Left :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, 90));
+				break;
+			}
+			break;
+
+		// Dari Kiri
+		case Direction.Left  : 
+			switch(to) {
+			case Direction.Up :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, -90));
+				break;
+			case Direction.Down :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, 90));
+				break;
+			}
+			break;
+
+		// Dari Kanan
+		case Direction.Right  : 
+			switch(to) {
+			case Direction.Up :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, 90));
+				break;
+			case Direction.Down :
+				snake.transform.Rotate(new Vector3(snake.transform.rotation.x, snake.transform.rotation.y, -90));
+				break;
+			}
+			break;
+		}
 	}
 }

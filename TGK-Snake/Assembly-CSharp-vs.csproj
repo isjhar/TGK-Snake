@@ -47,13 +47,26 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Scripts\BodySnake.cs" />
-     <Compile Include="Assets\Scripts\CollideDetector.cs" />
      <Compile Include="Assets\Scripts\Direction.cs" />
-     <Compile Include="Assets\Scripts\MakananController.cs" />
+     <Compile Include="Assets\Scripts\Food.cs" />
+     <Compile Include="Assets\Scripts\FoodController.cs" />
+     <Compile Include="Assets\Scripts\FoodDescription.cs" />
+     <Compile Include="Assets\Scripts\HeadCollider.cs" />
+     <Compile Include="Assets\Scripts\Level.cs" />
+     <Compile Include="Assets\Scripts\LevelManager.cs" />
+     <Compile Include="Assets\Scripts\MapManager.cs" />
      <Compile Include="Assets\Scripts\MenuGUI.cs" />
+     <Compile Include="Assets\Scripts\ObstacleCollider.cs" />
+     <Compile Include="Assets\Scripts\Origin.cs" />
+     <Compile Include="Assets\Scripts\Player.cs" />
+     <Compile Include="Assets\Scripts\ScreenManager.cs" />
      <Compile Include="Assets\Scripts\SnakeController.cs" />
      <Compile Include="Assets\Scripts\State.cs" />
+     <Compile Include="Assets\Scripts\Tile.cs" />
      <Compile Include="Assets\Scripts\Watcher.cs" />
+     <Compile Include="Assets\Scripts\WorldController.cs" />
+     <None Include="Assets\Resources\lebihgreget.txt" />
+     <None Include="Assets\Resources\greget.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

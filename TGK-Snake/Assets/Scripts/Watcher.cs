@@ -3,18 +3,28 @@ using System.Collections;
 
 public class Watcher {
 	private Direction direction;
-	private Vector3 point;
+	private Tile tile;
+	private int numberOfPass;
 
-	public Watcher (Direction direction, Vector3 point){
+	public Watcher (Direction direction, Tile tile){
 		this.direction = direction;
-		this.point = point;
+		this.tile = tile;
+		numberOfPass = 0;
 	}
 
 	public Direction GetDirection(){
 		return direction;
 	}
 
-	public Vector3 GetPoint(){
-		return point;
+	public Tile GetTile(){
+		return tile;
+	}
+
+	public int GetNumberOfPass(){
+		return numberOfPass;
+	}
+
+	public void IncrementNumberOfPass(){
+		numberOfPass++;
 	}
 }
